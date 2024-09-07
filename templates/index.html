@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job-CV Scorer</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: 0 auto; }
+        textarea, input[type="file"] { width: 100%; margin-bottom: 10px; }
+        button { padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        #results { margin-top: 20px; }
+        .result-section { margin-bottom: 20px; }
+        .result-section h3 { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Job-CV Scorer</h1>
+    <form id="scorerForm">
+        <label for="job_description">Job Description:</label><br>
+        <textarea id="job_description" name="job_description" rows="10" required></textarea><br>
+        <label for="cv">Upload CV (PDF):</label><br>
+        <input type="file" id="cv" name="cv" accept=".pdf" required><br>
+        <button type="submit">Process</button>
+    </form>
+
+    <div id="results" style="display:none;">
+        <div class="result-section">
+            <h3>Embedding-based Score:</h3>
+            <p id="embedding_score"></p>
+        </div>
+        <div class="result-section">
+            <h3>LLM-based Score:</h3>
+            <p id="llm_score"></p>
+        </div>
+        <div class="result-section">
+            <h3>Skill Analysis:</h3>
+            <pre id="skill_analysis"></pre>
+        </div>
+        <div class="result-section">
+            <h3>Generated Cover Letter:</h3>
+            <pre id="cover_letter"></pre>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#scorerForm').on('submit', function(e) {
+                e.preventDefault();
+                var formData = new FormData(this);
+                
+                $.ajax({
+                    url: '/process',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        if(response.error) {
+                            alert('Error: ' + response.error);
+                        } else {
+                            $('#embedding_score').text(response.embedding_score);
+                            $('#llm_score').text(response.llm_score);
+                            $('#skill_analysis').text(response.skill_analysis);
+                            $('#cover_letter').text(response.cover_letter);
+                            $('#results').show();
+                        }
+                    },
+                    error: function() {
+                        alert('An error occurred while processing the request.');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
