@@ -8,8 +8,8 @@ cover_letter_prompt = \
     CV:
     {}
 
-    Please write a professional and concise cover letter (max 200 words), formatted as follows:
-    
+    Please write a professional and concise cover letter (max 200 words).
+    Do not include any introduction, just ouput the letter formatted as follows:
     
     [Greeting]
 
@@ -23,6 +23,4 @@ cover_letter_prompt = \
 
     [Closing]
     [Your Name]
-
-    Do not include any additional output.
     """
