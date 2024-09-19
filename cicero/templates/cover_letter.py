@@ -9,6 +9,8 @@ cover_letter_prompt = \
     {}
 
     Please write a professional and concise cover letter (max 200 words), formatted as follows:
+    
+    
     [Greeting]
 
     [Opening paragraph: Express enthusiasm for the position and briefly mention how you learned about it]
@@ -21,4 +23,6 @@ cover_letter_prompt = \
 
     [Closing]
     [Your Name]
+
+    Do not include any additional output.
     """

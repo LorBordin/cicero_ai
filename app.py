@@ -1,62 +1,62 @@
-from flask import Flask, request, render_template, jsonify
-from werkzeug.utils import secure_filename
+import streamlit as st
 import os
+import tempfile
 from sentence_transformers import SentenceTransformer
 
-from cicero.core.similarity import calculate_similarity_llm, calculate_similarity
+from cicero.core.similarity import calculate_similarity_llm
 from cicero.core.cover_letter import generate_cover_letter
 from cicero.utils.parsing import extract_text_from_pdf
 from cicero.core.missing_skills import analyze_skills
 
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads/'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
+# Initialize SentenceTransformer model
+@st.cache_resource
+def load_model():
+    return SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
-# Ensure the upload folder exists
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+model = load_model()
 
-model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+st.title('CV Analyzer')
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Job Description input
+job_description = st.text_area("Enter the job description:")
 
-@app.route('/process', methods=['POST'])
-def process():
-    job_description = request.form['job_description']
-    
-    if 'cv' not in request.files:
-        return jsonify({'error': 'No file part'})
-    
-    file = request.files['cv']
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'})
-    
-    if file:
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-        
+# File uploader for CV
+uploaded_file = st.file_uploader("Upload your CV (PDF)", type="pdf")
+
+if st.button('Analyze') and uploaded_file is not None and job_description:
+    with st.spinner('Analyzing...'):
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+            tmp_file.write(uploaded_file.getvalue())
+            tmp_file_path = tmp_file.name
+
         try:
-            cv_text = extract_text_from_pdf(filepath)
-            
-            similarity_score = calculate_similarity(job_description, cv_text, model)
+            # Extract text from CV
+            cv_text = extract_text_from_pdf(tmp_file_path)
+
+            # Task 1: LLM-based similarity score
             similarity_score_llm = calculate_similarity_llm(job_description, cv_text)
+            st.subheader("Similarity Score")
+            st.write(f"{similarity_score_llm}")
+
+            # Task 2: Skill analysis
             skill_analysis = analyze_skills(job_description, cv_text)
+            st.subheader("Skill Analysis")
+            st.write(skill_analysis)
+
+            # Task 3: Generate cover letter
             cover_letter = generate_cover_letter(job_description, cv_text)
-            
-            os.remove(filepath)  # Remove the uploaded file after processing
-            
-            return jsonify({
-                'embedding_score': f"{similarity_score:.4f}",
-                'llm_score': similarity_score_llm,
-                'skill_analysis': skill_analysis,
-                'cover_letter': cover_letter
-            })
-        
+            st.subheader("Generated Cover Letter")
+            st.text_area("", cover_letter, height=300)
+
         except Exception as e:
-            os.remove(filepath)  # Ensure file is removed even if an error occurs
-            return jsonify({'error': str(e)})
+            st.error(f"An error occurred: {str(e)}")
+        finally:
+            # Clean up temporary file
+            os.unlink(tmp_file_path)
+else:
+    st.info("Please upload a CV and enter a job description to start the analysis.")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Streamlit runs this script directly
+    pass

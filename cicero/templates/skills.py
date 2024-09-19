@@ -1,6 +1,6 @@
 missing_skills_prompt = \
     """
-    Given the following job description and CV, please identify the skills required for the job that are not present in the CV. Also, provide brief suggestions on how to acquire these missing skills.
+    Given the following job description and CV, please identify the main skills required for the job that are missing in the CV.
 
     Job Description:
     {}
@@ -8,14 +8,12 @@ missing_skills_prompt = \
     CV:
     {}
 
-    Please format your response as follows:
+    Format your response as follows:
+    
     Missing Skills:
     - Skill 1
     - Skill 2
     - ...
 
-    Suggestions for Skill Acquisition:
-    - For Skill 1: [Brief suggestion]
-    - For Skill 2: [Brief suggestion]
-    - ...
+    Do not include any additional output.
     """

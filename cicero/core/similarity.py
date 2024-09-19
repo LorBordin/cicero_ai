@@ -22,4 +22,4 @@ def calculate_similarity_llm(job_description, cv_text):
     if response.status_code == 200:
         return response.json()['response']
     else:
-        return "Error: Unable to analyze skills. Please ensure Ollama is running and Llama 2 is available."
+        return "Error: Unable to calculate similarities. Please ensure Ollama is running and Llama 3 is available."
