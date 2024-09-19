@@ -8,7 +8,8 @@ CV:
 {}
 
 Please format your response as follows:
-Candidate score: [score]
+Score: [score]
 
-[motivation - 1 SENTENCE]
+Motivation: [motivation - 1 SENTENCE]
 """
+
