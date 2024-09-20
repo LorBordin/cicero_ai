@@ -1,102 +1,121 @@
 import streamlit as st
 import os
 import tempfile
-from sentence_transformers import SentenceTransformer
 
 from cicero.utils.parsing import extract_text_from_pdf
-from cicero.templates import missing_skills_prompt
-from cicero.templates import cover_letter_prompt
-from cicero.templates import similarity_prompt, similarity_analysis_prompt
-from cicero.templates import job_analysis_prompt, resume_analysis_prompt
 from cicero.core import llm_query
-from cicero.core import calculate_similarity
+from cicero import templates as prompt
 
-# Initialize SentenceTransformer model
-@st.cache_resource
-def load_model():
-    return SentenceTransformer('paraphrase-MiniLM-L6-v2')
+# Constants
+LANGUAGE_OPTIONS = {
+    "🇬🇧 English": "English",
+    "🇮🇹 Italiano": "Italian",
+    "🇫🇷 Français": "French",
+    "🇩🇪 Deutsch": "German",
+    "🇪🇸 Español": "Spanish"
+}
 
-st.title('CV Analyzer')
+def get_cv_text(uploaded_file):
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+        tmp_file.write(uploaded_file.getvalue())
+        tmp_file_path = tmp_file.name
+    
+    try:
+        return extract_text_from_pdf(tmp_file_path)
+    finally:
+        os.unlink(tmp_file_path)
 
-# Job Description input
-job_description = st.text_area("Enter the job description:")
+def parse_job_description(job_description):
+    language = llm_query(prompt.detect_language.format(job_description))
+    print(f"\n\n{language}\n\n")
 
-# File uploader for CV
-uploaded_file = st.file_uploader("Upload your CV (PDF)", type="pdf")
+    if language.lower().strip(".") != "english":
+        translation = llm_query(prompt.translate.format(job_description))
+        print("Translated text")
+        print(f"\n\n{translation}\n\n")
+        return translation
+    else:
+        return job_description
 
-if st.button('Analyze') and uploaded_file is not None and job_description:
-    with st.spinner('Analyzing...'):
-        # Save uploaded file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-            tmp_file.write(uploaded_file.getvalue())
-            tmp_file_path = tmp_file.name
 
-        try:
-            # Extract text from CV
-            cv_text = extract_text_from_pdf(tmp_file_path)
+def get_similarity_score(job_description, cv_text):
+    return llm_query(prompt.compute_similarity.format(job_description, cv_text))
 
-            # Task -2: Job description analysis
-            job_analysis = llm_query(
-                job_analysis_prompt.format(
-                    job_description
-                )
-            )
-            st.subheader("Job Summary")
-            st.write(f"{job_analysis}")
+def get_skill_analysis(job_description, cv_text):
+    return llm_query(prompt.get_missing_skills.format(job_description, cv_text))
 
-            # Task -1: CV Analysis
-            cv_analysis = llm_query(
-                resume_analysis_prompt.format(
-                    cv_text
-                )
-            )
-            st.subheader("Resume Summary")
-            st.write(f"{cv_analysis}")
-            
-            # Task 0: Similarity score based on summaries
-            similarity_summaries = llm_query(
-                similarity_analysis_prompt.format(
-                    job_analysis,
-                    cv_analysis
-                )
-            )
-            st.subheader("Summaries")
-            st.write(similarity_summaries)
+def generate_cover_letter(job_description, cv_text, language):
+    return llm_query(prompt.write_cover_letter.format(job_description, cv_text, language))
 
-            # Task 1: LLM-based similarity score
-            similarity_score_llm = llm_query(
-                similarity_prompt.format(
-                    job_description, 
-                    cv_text
-                )
-            )
-            st.subheader("Similarity Score")
-            st.write(f"{similarity_score_llm}")
-            """
-            # Task 2: Skill analysis
-            skill_analysis = llm_query(
-                missing_skills_prompt.format(
-                    job_description,
-                    cv_text
-                )
-            )
-            st.subheader("Skill Analysis")
-            st.write(skill_analysis)
+def main():
+    st.set_page_config(page_title="CV Analyzer", page_icon="📄")
+    
+    st.title('📄 CV Analyzer')
+    st.markdown("---")
 
-            # Task 3: Generate cover letter
-            cover_letter = llm_query(
-                cover_letter_prompt.format(
-                    job_description,
-                    cv_text
-                )
-            )
-            st.subheader("Generated Cover Letter")
-            st.text_area("", cover_letter, height=300)
-        """
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
-        finally:
-            # Clean up temporary file
-            os.unlink(tmp_file_path)
-else:
-    st.info("Please upload a CV and enter a job description to start the analysis.")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("📝 Job Description")
+        job_description = st.text_area("Enter the job description:", height=200)
+        
+        # Move the "Analyze CV" button here
+        analyze_button = st.button('🔍 Analyze CV', key='analyze_button')
+        
+        # Add a placeholder for the spinner
+        spinner_placeholder = st.empty()
+
+    with col2:
+        st.subheader("📎 Upload CV")
+        uploaded_file = st.file_uploader("Upload your CV (PDF)", type="pdf")
+        
+        st.subheader("🌐 Cover Letter Language")
+        sel_lang = st.selectbox(
+            "Select a language for the Cover Letter",
+            list(LANGUAGE_OPTIONS.keys())
+        )
+        language = LANGUAGE_OPTIONS[sel_lang]
+
+    st.markdown("---")
+
+    # Create placeholder elements
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("🎯 Similarity Score")
+        similarity_score_placeholder = st.empty()
+        similarity_score_placeholder.info("Your similarity score will appear here after analysis.")
+    
+    with col2:
+        st.subheader("🔍 Skill Analysis")
+        skill_analysis_placeholder = st.empty()
+        skill_analysis_placeholder.warning("Missing skills will be listed here after analysis.")
+
+    st.subheader("✉️ Generated Cover Letter")
+    cover_letter_placeholder = st.empty()
+    cover_letter_placeholder.text_area("Your generated cover letter will appear here after analysis.", height=300, disabled=True)
+
+    if analyze_button:
+        if uploaded_file is not None and job_description:
+            # Use the spinner placeholder
+            with spinner_placeholder:
+                with st.spinner('Analyzing your CV... 🕵️‍♂️'):
+                    try:
+                        cv_text = get_cv_text(uploaded_file)
+                        
+                        parsed_job_description = parse_job_description(job_description)
+                        similarity_score = get_similarity_score(parsed_job_description, cv_text)
+                        similarity_score_placeholder.info(similarity_score)
+                        
+                        skill_analysis = get_skill_analysis(parsed_job_description, cv_text)
+                        skill_analysis_placeholder.warning(skill_analysis)
+
+                        cover_letter = generate_cover_letter(parsed_job_description, cv_text, language)
+                        cover_letter_placeholder.text_area("", cover_letter, height=300)
+                    
+                    except Exception as e:
+                        st.error(f"An error occurred: {str(e)}")
+        else:
+            st.warning("⚠️ Please upload a CV and enter a job description to start the analysis.")
+
+if __name__ == "__main__":
+    main()

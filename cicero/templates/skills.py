@@ -1,4 +1,4 @@
-missing_skills_prompt = \
+get_missing_skills = \
     """
     Given the following job description and CV, please identify the main skills required for the job that are missing in the CV.
 
@@ -10,7 +10,7 @@ missing_skills_prompt = \
 
     Format your response as follows:
     
-    Missing Skills:
+    Consider improving the following skills:
     - Skill 1
     - Skill 2
     - ...

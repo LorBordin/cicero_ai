@@ -1,4 +1,4 @@
-similarity_prompt = \
+compute_similarity = \
     """
     Given the following job description and CV, give a score between 0 and 100 that quantifies how much the candidate fits the role. 
     Also motivate your score.
@@ -10,12 +10,12 @@ similarity_prompt = \
     {}
 
     Please format your response as follows:
-    Score: [score]
+    ***Score:*** [score]
 
-    Motivation: [motivation - 1 SENTENCE]
+    ***Motivation:*** [motivation - 1 SENTENCE]
     """
 
-similarity_analysis_prompt = \
+compute_similarity_from_summary = \
     """
     Given the job description and resume summaries, provide a score between 0 and 100 to quantify how much the candidate fits the role.
     Also, motivate your score. Be precise and analytical, here is a list of aspects you should take into account:
