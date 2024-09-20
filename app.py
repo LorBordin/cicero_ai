@@ -1,9 +1,9 @@
 import streamlit as st
-import os
 import tempfile
+import os
 
 from cicero.utils.parsing import extract_text_from_pdf
-from cicero.core import llm_query
+from cicero.core import LLMClient
 from cicero import templates as prompt
 
 # Constants
@@ -14,6 +14,21 @@ LANGUAGE_OPTIONS = {
     "🇩🇪 Deutsch": "German",
     "🇪🇸 Español": "Spanish"
 }
+
+#llm_client = LLMClient(
+#    mode="local",
+#    model="llama3",
+#    url='http://localhost:11434/api/generate'
+#)
+
+from dotenv import load_dotenv
+load_dotenv("./groq_api_key.env")
+
+llm_client = LLMClient(
+    mode="external",
+    model="llama3-70b-8192",
+    api_key=os.getenv("GROQ_API_KEY")
+)
 
 def get_cv_text(uploaded_file):
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
@@ -26,26 +41,23 @@ def get_cv_text(uploaded_file):
         os.unlink(tmp_file_path)
 
 def parse_job_description(job_description):
-    language = llm_query(prompt.detect_language.format(job_description))
-    print(f"\n\n{language}\n\n")
+    language = llm_client.query(prompt.detect_language.format(job_description))
 
     if language.lower().strip(".") != "english":
-        translation = llm_query(prompt.translate.format(job_description))
-        print("Translated text")
-        print(f"\n\n{translation}\n\n")
+        translation = llm_client.query(prompt.translate.format(job_description))
         return translation
     else:
         return job_description
 
 
 def get_similarity_score(job_description, cv_text):
-    return llm_query(prompt.compute_similarity.format(job_description, cv_text))
+    return llm_client.query(prompt.compute_similarity.format(job_description, cv_text))
 
 def get_skill_analysis(job_description, cv_text):
-    return llm_query(prompt.get_missing_skills.format(job_description, cv_text))
+    return llm_client.query(prompt.get_missing_skills.format(job_description, cv_text))
 
 def generate_cover_letter(job_description, cv_text, language):
-    return llm_query(prompt.write_cover_letter.format(job_description, cv_text, language))
+    return llm_client.query(prompt.write_cover_letter.format(job_description, cv_text, language))
 
 def main():
     st.set_page_config(page_title="CV Analyzer", page_icon="📄")
