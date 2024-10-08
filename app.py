@@ -41,9 +41,6 @@ STYLE_OPTIONS = {
 #    url='http://localhost:11434/api/generate'
 #)
 
-#from dotenv import load_dotenv
-#load_dotenv("./groq_api_key.env")
-
 llm_client = LLMClient(
     client_name="groq",
     model="llama3-70b-8192",

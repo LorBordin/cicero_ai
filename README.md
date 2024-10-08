@@ -66,10 +66,10 @@ pip install -r requirements.txt
 
 3. **Configure API Key**:
 
-Create a `.env` file and add your Groq API key:
+Create a `.streamlit/secrets.toml` file and add your Groq API key:
 
 ```bash
-GROQ_API_KEY=your_groq_api_key
+GROQ_API_KEY="your_groq_api_key"
 ```
 
 4. **Launch the App**:
