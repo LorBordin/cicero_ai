@@ -1,10 +1,11 @@
 import streamlit as st
-import os
 import tempfile
+import os
 
+from cicero.letter_templates import minimal, concise, standard, detailed
 from cicero.utils.parsing import extract_text_from_pdf
-from cicero.core import llm_query
-from cicero import templates as prompt
+from cicero.core import LLMClient
+from cicero import prompts as prompt
 
 # Constants
 LANGUAGE_OPTIONS = {
@@ -14,6 +15,40 @@ LANGUAGE_OPTIONS = {
     "🇩🇪 Deutsch": "German",
     "🇪🇸 Español": "Spanish"
 }
+
+STYLE_OPTIONS = {
+    "Minimal": {
+        "template": minimal,
+        "n_pars": 3
+    },  
+    "Concise": {
+        "template": concise,
+        "n_pars": 3
+    },
+    "Standard": {
+        "template": standard,
+        "n_pars": 5
+    },
+    "Detailed": {
+        "template": detailed,
+        "n_pars": 6
+    }
+}
+
+#llm_client = LLMClient(
+#    client_name="ollama",
+#    model="llama3",
+#    url='http://localhost:11434/api/generate'
+#)
+
+from dotenv import load_dotenv
+load_dotenv("./groq_api_key.env")
+
+llm_client = LLMClient(
+    client_name="groq",
+    model="llama3-70b-8192",
+    api_key=os.getenv("GROQ_API_KEY")
+)
 
 def get_cv_text(uploaded_file):
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
@@ -26,26 +61,30 @@ def get_cv_text(uploaded_file):
         os.unlink(tmp_file_path)
 
 def parse_job_description(job_description):
-    language = llm_query(prompt.detect_language.format(job_description))
-    print(f"\n\n{language}\n\n")
+    language = llm_client.query(prompt.detect_language.format(job_description))
 
     if language.lower().strip(".") != "english":
-        translation = llm_query(prompt.translate.format(job_description))
-        print("Translated text")
-        print(f"\n\n{translation}\n\n")
+        translation = llm_client.query(prompt.translate.format(job_description))
         return translation
     else:
         return job_description
 
 
 def get_similarity_score(job_description, cv_text):
-    return llm_query(prompt.compute_similarity.format(job_description, cv_text))
+    return llm_client.query(prompt.compute_similarity.format(job_description, cv_text))
 
 def get_skill_analysis(job_description, cv_text):
-    return llm_query(prompt.get_missing_skills.format(job_description, cv_text))
+    return llm_client.query(prompt.get_missing_skills.format(job_description, cv_text))
 
-def generate_cover_letter(job_description, cv_text, language):
-    return llm_query(prompt.write_cover_letter.format(job_description, cv_text, language))
+def generate_cover_letter(job_description, cv_text, language, n_pars, template):
+    cv_prompt = prompt.write_cover_letter.format(
+        job_description, 
+        cv_text, 
+        language,
+        n_pars,
+        template
+    )
+    return llm_client.query(cv_prompt)
 
 def main():
     st.set_page_config(page_title="CV Analyzer", page_icon="📄")
@@ -53,22 +92,29 @@ def main():
     st.title('📄 CV Analyzer')
     st.markdown("---")
 
+    # Job Description section (centered, covering both columns)
+    st.subheader("📝 Job Description")
+    job_description = st.text_area("Enter the job description:", height=200)
+    
+    # Upload CV section (right column)
+    st.subheader("📎 Upload CV")
+    uploaded_file = st.file_uploader("Upload your CV (PDF)", type="pdf")
+    
+    # Create two columns for the layout below Job Description
     col1, col2 = st.columns(2)
     
-    with col1:
-        st.subheader("📝 Job Description")
-        job_description = st.text_area("Enter the job description:", height=200)
-        
-        # Move the "Analyze CV" button here
-        analyze_button = st.button('🔍 Analyze CV', key='analyze_button')
-        
-        # Add a placeholder for the spinner
-        spinner_placeholder = st.empty()
-
     with col2:
-        st.subheader("📎 Upload CV")
-        uploaded_file = st.file_uploader("Upload your CV (PDF)", type="pdf")
+        # Cover Letter Style section (left column)
+        st.subheader("✍️ Cover Letter Style")
+        sel_style = st.selectbox(
+            "Select a style for the Cover Letter",
+            list(STYLE_OPTIONS.keys())
+        )
+        style = STYLE_OPTIONS[sel_style]
+
+    with col1:
         
+        # Cover Letter Language section (right column)
         st.subheader("🌐 Cover Letter Language")
         sel_lang = st.selectbox(
             "Select a language for the Cover Letter",
@@ -76,9 +122,18 @@ def main():
         )
         language = LANGUAGE_OPTIONS[sel_lang]
 
+    _, center_col, _ = st.columns(3)
+    
+    with center_col:
+        # Analyze CV button (left column)
+        analyze_button = st.button('🕵️'*2 + ' Analyze CV ' + '🕵️'*2, key='analyze_button')
+
+    # Add a placeholder for the spinner
+    spinner_placeholder = st.empty()
+
     st.markdown("---")
 
-    # Create placeholder elements
+    # Create placeholder elements for results
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("🎯 Similarity Score")
@@ -109,10 +164,17 @@ def main():
                         skill_analysis = get_skill_analysis(parsed_job_description, cv_text)
                         skill_analysis_placeholder.warning(skill_analysis)
 
-                        cover_letter = generate_cover_letter(parsed_job_description, cv_text, language)
+                        cover_letter = generate_cover_letter(
+                            parsed_job_description, 
+                            cv_text, 
+                            language,
+                            style["n_pars"],
+                            style["template"]
+                        )
                         cover_letter_placeholder.text_area("", cover_letter, height=300)
                     
                     except Exception as e:
+                        print(f"broken: {e}")
                         st.error(f"An error occurred: {str(e)}")
         else:
             st.warning("⚠️ Please upload a CV and enter a job description to start the analysis.")
