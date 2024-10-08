@@ -1,5 +1,6 @@
 import streamlit as st
 import tempfile
+import argparse
 import os
 
 from cicero.letter_templates import minimal, concise, standard, detailed
@@ -34,18 +35,6 @@ STYLE_OPTIONS = {
         "n_pars": 6
     }
 }
-
-#llm_client = LLMClient(
-#    client_name="ollama",
-#    model="llama3",
-#    url='http://localhost:11434/api/generate'
-#)
-
-llm_client = LLMClient(
-    client_name="groq",
-    model="llama3-70b-8192",
-    api_key=os.getenv("GROQ_API_KEY")
-)
 
 def get_cv_text(uploaded_file):
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
@@ -177,4 +166,24 @@ def main():
             st.warning("⚠️ Please upload a CV and enter a job description to start the analysis.")
 
 if __name__ == "__main__":
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--llama", action="store_true",
+        help=""" If True uses a local copy of Llama3 from Ollama as language model."""
+    )
+    args = vars(ap.parse_args())
+    
+    if args["llama"]:
+        llm_client = LLMClient(
+            client_name="ollama",
+            model="llama3",
+            url='http://localhost:11434/api/generate'
+        )
+    else:
+        llm_client = LLMClient(
+            client_name="groq",
+            model="llama3-70b-8192",
+            api_key=os.getenv("GROQ_API_KEY")
+        )
+
     main()
