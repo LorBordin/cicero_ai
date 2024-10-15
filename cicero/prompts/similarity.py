@@ -32,6 +32,7 @@ compute_similarity_from_summary = \
     {}
 
     Please format your response as follows:
+    
     Score: [score]
 
     Motivation: [motivation - 1 SENTENCE, NO LIST]

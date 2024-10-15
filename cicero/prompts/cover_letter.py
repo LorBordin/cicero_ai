@@ -1,7 +1,7 @@
 write_cover_letter = \
     """
-    Given the following job description and CV, please generate a tailored cover letter for the candidate applying for this position. 
-    The cover letter should highlight the candidate's relevant skills and experiences that match the job requirements, and express enthusiasm for the position.
+    Generate a professional cover letter tailored to the following job description and CV. 
+    The cover letter should highlight the candidate's relevant skills and experiences, and express enthusiasm for the position.
 
     Job Description:
     {}
@@ -9,9 +9,10 @@ write_cover_letter = \
     CV:
     {}
 
-    Please write a professional cover letter in {}. 
-    Format the letter in {} paragraphs.
-    Strictly follow the template below:
-    
+    Write the letter in {} and format it in {} paragraphs. 
+    Strictly adhere to the template below:
+
     {}
+
+    Output only the letter text. Do not add any headers, introductions, or commentary.
     """
