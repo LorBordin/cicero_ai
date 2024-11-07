@@ -47,6 +47,12 @@ CiceroAI writes your cover letter in multiple languages. Choose from:
 
 ---
 
+## 🌐 Try CiceroAI on Streamlit Cloud
+Experience CiceroAI directly on the web without any setup! 
+Click [here](https://cicero-ai.streamlit.app/) to try CiceroAI on Streamlit Cloud and see how your CV measures up and generate tailored cover letters effortlessly.
+
+---
+
 ## 🛠️ Installation & Setup
 
 1. **Clone the Repo**:
@@ -94,4 +100,4 @@ Got ideas or want to enhance CiceroAI? Feel free to open a pull request or raise
 
 ## 📜 License
 
-CiceroAI is available under the MIT License. See the LICENSE file for more details.
+CiceroAI is available under the MIT License.
